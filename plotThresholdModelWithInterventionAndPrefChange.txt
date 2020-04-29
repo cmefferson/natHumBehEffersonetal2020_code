@@ -1,0 +1,161 @@
+# Created by Charles Efferson.
+# Copyright, 2019, all rights reserved.
+
+# Analytics for the threshold model with preference heterogeneity and heterogeneous responses to the intervention.
+# For R.
+
+rm(list = ls())
+
+# aBetaDist is the first shape parameter for the beta dist
+# bBetaDist is the second shape parameter for the beta dist
+# propTargeted is the proportion of agents targeted by intervention => their thresholds go to 0
+# slopeResponse is the slope of the linear function that controls the response to the intervention, i.e. c in Supplementary Information
+
+windowWidth <- 16
+windowHeight <- 15
+cexLab <- 2.25
+cexAxis <- 1.75
+cexMain <- 2
+cexPanel <- 2.75
+
+x <- seq(from = 0, to = 1, length.out = 1001) # the support
+aBetaDist <- 1.5^(-5:5)
+bBetaDist <- 1.5^(-5:5)
+propTargeted <- c(0.1,0.2,0.3,0.4,0.5)
+slopeResponse <- c(0,1) # Must be two values, obvious choices being 0 (everyone responds to intervention) and some number in (0,1] (heterogeneous response to intervention)
+
+for (i in 1:length(aBetaDist))
+{
+for (j in 1:length(bBetaDist))
+{
+for (m in 1:length(propTargeted))
+{
+
+d <- dbeta(x,aBetaDist[i],bBetaDist[j]) # densities
+p <- pbeta(x,aBetaDist[i],bBetaDist[j]) # CDF values
+
+pdf(file=paste('thresholdModelWithIntervention_alpha',aBetaDist[i],'_beta',bBetaDist[j],'_prop',propTargeted[m],'_slope',slopeResponse[1],'and',slopeResponse[2],'.pdf',sep=''),width=windowWidth,height=windowHeight)
+par(mar=c(5.5,5.5,4,2),mgp=c(3.5,1,0),mfcol=c(3,3))
+
+
+
+
+# Plot amenable target, pdf with target highlighted
+plot(x,d,type='l',lwd=3,xlab='Threshold',ylab='Density',main='Amenable',cex.lab=cexLab,cex.axis=cexAxis,cex.main=cexMain)
+xTemp <- seq(from = 0, to = qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]),length.out = 200 * propTargeted[m])
+for (k in 1:length(xTemp))
+{
+	lines(rep(xTemp[k],2),c(0,dbeta(xTemp[k],aBetaDist[i],bBetaDist[j])))
+}
+mtext('a',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+# Plot amenable target, cdf based on first value of slopeResponse
+omega <- slopeResponse[1] * aBetaDist[i] / (aBetaDist[i] + bBetaDist[j])
+lambdaL <- propTargeted[m] * (1 - omega) + omega * qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j])^aBetaDist[i] * (1 - qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]))^bBetaDist[j] / (aBetaDist[i] * beta(aBetaDist[i],bBetaDist[j])) 
+
+plot(0:1,0:1,type='l',lty='dashed',lwd=3,xlab=expression(italic(q)[italic(t)]),ylab=expression(italic(q)[italic(t)+1]),cex.lab=cexLab,cex.axis=cexAxis)
+lines(rep(propTargeted[m],2),0:1,lwd=2,lty='dashed') # The target proportion
+if (slopeResponse[1] > 0) {lines(rep(lambdaL,2),0:1,lwd=2,lty='dashed',col='red')} # The proportion that actually responds
+xTempLower <- seq(from = 0,to = qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]),length.out = propTargeted[m] * length(x))
+xTempUpper <- seq(from = qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]),to = 1,length.out = (1 - propTargeted[m]) * length(x))
+lines(xTempLower,propTargeted[m] - omega * (pbeta(qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]),aBetaDist[i] + 1,bBetaDist[j]) - pbeta(xTempLower,aBetaDist[i] + 1,bBetaDist[j])),lwd=3,lty='solid')
+lines(xTempUpper,pbeta(xTempUpper,aBetaDist[i],bBetaDist[j]),lwd=3,lty='solid')
+mtext('d',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+# Plot amenable target, cdf based on second value of slopeResponse
+omega <- slopeResponse[2] * aBetaDist[i] / (aBetaDist[i] + bBetaDist[j])
+lambdaL <- propTargeted[m] * (1 - omega) + omega * qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j])^aBetaDist[i] * (1 - qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]))^bBetaDist[j] / (aBetaDist[i] * beta(aBetaDist[i],bBetaDist[j])) 
+
+plot(0:1,0:1,type='l',lty='dashed',lwd=3,xlab=expression(italic(q)[italic(t)]),ylab=expression(italic(q)[italic(t)+1]),cex.lab=cexLab,cex.axis=cexAxis)
+lines(rep(propTargeted[m],2),0:1,lwd=2,lty='dashed') # The target proportion
+if (slopeResponse[2] > 0) {lines(rep(lambdaL,2),0:1,lwd=2,lty='dashed',col='red')} # The proportion that actually responds
+xTempLower <- seq(from = 0,to = qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]),length.out = propTargeted[m] * length(x))
+xTempUpper <- seq(from = qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]),to = 1,length.out = (1 - propTargeted[m]) * length(x))
+lines(xTempLower,propTargeted[m] - omega * (pbeta(qbeta(propTargeted[m],aBetaDist[i],bBetaDist[j]),aBetaDist[i] + 1,bBetaDist[j]) - pbeta(xTempLower,aBetaDist[i] + 1,bBetaDist[j])),lwd=3,lty='solid')
+lines(xTempUpper,pbeta(xTempUpper,aBetaDist[i],bBetaDist[j]),lwd=3,lty='solid')
+mtext('g',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+
+
+
+# Plot random target, pdf with target highlighted
+plot(x,d,type='l',lwd=3,xlab='Threshold',ylab='Density',main='Random',cex.lab=cexLab,cex.axis=cexAxis,cex.main=cexMain)
+xTemp <- x[sample(1:length(x),replace=F)[1:ceiling(propTargeted[m]*200)]]
+for (k in 1:length(xTemp))
+{
+	lines(rep(xTemp[k],2),c(0,dbeta(xTemp[k],aBetaDist[i],bBetaDist[j])))
+}
+mtext('b',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+# Plot random target, cdf with first value of slopeResponse
+omega <- slopeResponse[1] * aBetaDist[i] / (aBetaDist[i] + bBetaDist[j])
+lambdaR <- propTargeted[m] * (1 - omega)
+
+plot(0:1,0:1,type='l',lty='dashed',lwd=3,xlab=expression(italic(q)[italic(t)]),ylab=expression(italic(q)[italic(t)+1]),cex.lab=cexLab,cex.axis=cexAxis)
+lines(rep(propTargeted[m],2),0:1,lwd=2,lty='dashed') # The target proportion
+if (slopeResponse[1] > 0) {lines(rep(lambdaR,2),0:1,lwd=2,lty='dashed',col='red')} # The proportion that actually responds
+lines(x,propTargeted[m] * (1 - omega) + propTargeted[m] * omega * pbeta(x,aBetaDist[i] + 1,bBetaDist[j]) + (1 - propTargeted[m]) * pbeta(x,aBetaDist[i],bBetaDist[j]),lwd=3,lty='solid')
+mtext('e',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+# Plot random target, cdf with second value of slopeResponse
+omega <- slopeResponse[2] * aBetaDist[i] / (aBetaDist[i] + bBetaDist[j])
+lambdaR <- propTargeted[m] * (1 - omega)
+
+plot(0:1,0:1,type='l',lty='dashed',lwd=3,xlab=expression(italic(q)[italic(t)]),ylab=expression(italic(q)[italic(t)+1]),cex.lab=cexLab,cex.axis=cexAxis)
+lines(rep(propTargeted[m],2),0:1,lwd=2,lty='dashed') # The target proportion
+if (slopeResponse[2] > 0) {lines(rep(lambdaR,2),0:1,lwd=2,lty='dashed',col='red')} # The proportion that actually responds
+lines(x,propTargeted[m] * (1 - omega) + propTargeted[m] * omega * pbeta(x,aBetaDist[i] + 1,bBetaDist[j]) + (1 - propTargeted[m]) * pbeta(x,aBetaDist[i],bBetaDist[j]),lwd=3,lty='solid')
+mtext('h',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+
+
+
+# Plot resistant target, pdf with target highlighted
+plot(x,d,type='l',lwd=3,xlab='Threshold',ylab='Density',main='Resistant',cex.lab=cexLab,cex.axis=cexAxis,cex.main=cexMain)
+xTemp <- seq(from = qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]),to = 1,length.out = 200 * propTargeted[m])
+for (k in 1:length(xTemp))
+{
+	lines(rep(xTemp[k],2),c(0,dbeta(xTemp[k],aBetaDist[i],bBetaDist[j])))
+}
+mtext('c',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+# Plot resistant target, cdf with first value of slope response
+omega <- slopeResponse[1] * aBetaDist[i] / (aBetaDist[i] + bBetaDist[j])
+lambdaH <- propTargeted[m] * (1 - omega) - omega * qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[i])^aBetaDist[i] * (1 - qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]))^bBetaDist[j] / (aBetaDist[i] * beta(aBetaDist[i],bBetaDist[j]))
+
+plot(0:1,0:1,type='l',lty='dashed',lwd=3,xlab=expression(italic(q)[italic(t)]),ylab=expression(italic(q)[italic(t)+1]),cex.lab=cexLab,cex.axis=cexAxis)
+lines(rep(propTargeted[m],2),0:1,lwd=2,lty='dashed') # The target proportion
+if (slopeResponse[1] > 0) {lines(rep(lambdaH,2),0:1,lwd=2,lty='dashed',col='red')} # The proportion that actually responds
+xTempLower <- seq(from = 0,to = qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]),length.out = (1 - propTargeted[m]) * length(x))
+xTempUpper <- seq(from = qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]),to = 1,length.out = propTargeted[m] * length(x))
+lines(xTempLower,propTargeted[m] - omega * (1 - pbeta(qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]),aBetaDist[i] + 1,bBetaDist[j])) +  pbeta(xTempLower,aBetaDist[i],bBetaDist[j]),lwd=3,lty='solid')
+lines(xTempUpper,1 - omega * (1 - pbeta(xTempUpper,aBetaDist[i] + 1,bBetaDist[j])),lwd=3,lty='solid')
+mtext('f',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+# Plot resistant target, cdf with second value of slope response
+omega <- slopeResponse[2] * aBetaDist[i] / (aBetaDist[i] + bBetaDist[j])
+lambdaH <- propTargeted[m] * (1 - omega) - omega * qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[i])^aBetaDist[i] * (1 - qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]))^bBetaDist[j] / (aBetaDist[i] * beta(aBetaDist[i],bBetaDist[j]))
+
+plot(0:1,0:1,type='l',lty='dashed',lwd=3,xlab=expression(italic(q)[italic(t)]),ylab=expression(italic(q)[italic(t)+1]),cex.lab=cexLab,cex.axis=cexAxis)
+lines(rep(propTargeted[m],2),0:1,lwd=2,lty='dashed') # The target proportion
+if (slopeResponse[2] > 0) {lines(rep(lambdaH,2),0:1,lwd=2,lty='dashed',col='red')} # The proportion that actually responds
+xTempLower <- seq(from = 0,to = qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]),length.out = (1 - propTargeted[m]) * length(x))
+xTempUpper <- seq(from = qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]),to = 1,length.out = propTargeted[m] * length(x))
+lines(xTempLower,propTargeted[m] - omega * (1 - pbeta(qbeta(1 - propTargeted[m],aBetaDist[i],bBetaDist[j]),aBetaDist[i] + 1,bBetaDist[j])) +  pbeta(xTempLower,aBetaDist[i],bBetaDist[j]),lwd=3,lty='solid')
+lines(xTempUpper,1 - omega * (1 - pbeta(xTempUpper,aBetaDist[i] + 1,bBetaDist[j])),lwd=3,lty='solid')
+mtext('i',at = -0.17,line = 0.375,cex = cexPanel)
+
+
+dev.off()
+
+}
+}
+}

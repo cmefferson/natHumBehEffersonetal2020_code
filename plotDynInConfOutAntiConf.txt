@@ -1,0 +1,95 @@
+# Created by Charles Efferson.
+# Copyright, 2019, all rights reserved.
+
+# This routine examines the dynamics of the deterministic in-group/out-group model.
+# For a given combination of parameter values, it plots the dynamics under various initial conditions.
+# One figure per combination of parameter values. 
+# For R.
+
+rm(list=ls())
+
+windowWidth <- 14
+windowHeight <- 12
+
+cexNum <- 2.5
+cexWords <- 3
+
+maxTimeStep <- 200
+numInitCond <- 19 # Should be odd to make graph look right
+
+initCond <- seq(from = 0.001, to = 0.999, length.out = numInitCond)
+
+# The parameter space
+phi <- c(0.1,0.2,0.3,0.4,0.5) # size of intervention
+beta <- c(0.5,0.6,0.7,0.8,0.9,0.95,0.99) # the weight on in-group conformity # wgt placed on in-group social influence
+gamma <- c(1.05,1.5,2,3,5,10,20) # controls the curvature of the social learning/influence functions, i.e. exponent (exp) for f, the in-group social influence function
+
+# In-group social influence
+f <- function(x,exp)
+{
+	x^exp / (x^exp + (1 - x)^exp)
+}
+
+# Numerical simulation
+for (i in 1:length(phi))
+{
+	for (j in 1:length(beta))
+	{
+		for (k in 1:length(gamma))
+		{
+			q1 <- rep(0,numInitCond^2 * (maxTimeStep + 1))
+			dim(q1) <- c(numInitCond^2,(maxTimeStep + 1))
+
+			q2 <- rep(0,numInitCond^2 * (maxTimeStep + 1))
+			dim(q2) <- c(numInitCond^2,(maxTimeStep + 1))
+
+			q1[ ,1] <- expand.grid(initCond,initCond)[ ,1]
+			q2[ ,1] <- expand.grid(initCond,initCond)[ ,2]
+
+			for (t in 1:maxTimeStep)
+			{
+				q1[ ,t+1] <- phi[i] + (1 - phi[i]) * (beta[j] * f(q1[ ,t],gamma[k]) + (1 - beta[j]) * (1 - f(q2[ ,t],gamma[k])))
+				q2[ ,t+1] <- phi[i] + (1 - phi[i]) * (beta[j] * f(q2[ ,t],gamma[k]) + (1 - beta[j]) * (1 - f(q1[ ,t],gamma[k])))	
+			}
+
+			# Plot
+			pdf(width = windowWidth, height = windowHeight, file = paste(paste('dyn_phi',phi[i],'_beta',beta[j],'_gamma',gamma[k],sep=''),'.pdf',sep=''))
+			par(mar=rep(0.1,4),oma=c(6,6,6,6),mfrow=rep(numInitCond,2))
+
+			for (n in 1:(numInitCond^2))
+			{
+				plot(0:maxTimeStep,rep(0,maxTimeStep+1),type='l',lty='blank',ylim=c(0,1),axes=F)
+				box()
+				lines(0:maxTimeStep,q1[n, ],lty='solid',lwd=1.5)
+				lines(0:maxTimeStep,q2[n, ],lty='dotdash',lwd=1.5)
+				
+				if (n == floor(0.25 * numInitCond))
+				{
+					axis(3, at= 0.5 * maxTimeStep, labels = as.expression(substitute(italic(phi) == phiOut,list(phiOut = phi[i]))),line = 1, cex.axis = cexWords, tick = F) 
+				}
+				if (n == ceiling(0.5 * numInitCond))
+				{
+					axis(3, at= 0.5 * maxTimeStep, labels = as.expression(substitute(italic(beta) == betaOut,list(betaOut = beta[j]))),line = 1, cex.axis = cexWords, tick = F) 
+				}
+				if (n == ceiling(0.75 * numInitCond))
+				{
+					axis(3, at = 0.5 * maxTimeStep, labels = as.expression(substitute(italic(gamma) == gammaOut,list(gammaOut = gamma[k]))),line = 1, cex.axis = cexWords, tick = F)
+				}
+				
+				
+				if (n == (numInitCond * floor(numInitCond/2) + 1))
+				{
+					axis(2, at = 0.5, labels = expression(paste(italic(q)[1][italic(t)],', ',italic(q)[2][italic(t)])),line = 2,cex.axis = cexWords, tick = F)
+				}
+				if (n == (numInitCond * (numInitCond - 1) + ceiling(numInitCond/2)))
+				{
+					axis(1, at = maxTimeStep/2, labels=expression(italic(t)),line = 3, cex.axis = cexWords, tick = F)
+				}
+			}
+			
+			dev.off()
+		}
+	}
+}
+
+
